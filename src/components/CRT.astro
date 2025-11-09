@@ -1,0 +1,156 @@
+---
+---
+<style>
+  #crt:before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.25) 50%
+        );
+        background-size: 100% 8px;
+        z-index: 2;
+        pointer-events: none;
+  }
+  @keyframes textShadow {
+    0% {
+      text-shadow: 0.4389924193300864px 0 1px rgba(0,30,255,0.5), -0.4389924193300864px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+    }
+    5% {
+      text-shadow: 2.7928974010788217px 0 1px rgba(0,30,255,0.5), -2.7928974010788217px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+    }
+    /** etc */
+  }
+  .scanline {
+    width: 100%;
+    height: 100px;
+    z-index: 8;
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(255, 255, 255, 0.2) 10%,
+      rgba(0, 0, 0, 0.1) 100%
+        );
+        opacity: 0.1;
+        position: absolute;
+        bottom: 100%;
+        animation: scanline 10s linear infinite;
+  }
+  @keyframes scanline {
+    0% {
+      bottom: 100%;
+    }
+    80% {
+      bottom: 100%;
+    }
+    100% {
+      bottom: 0%;
+    }
+  }
+  #screen {
+    position: relative;
+    width: 100%;
+    height: 67.5vmin;
+    border: 30px solid transparent;
+    border-image-source: url(./bezel.png);
+    border-image-slice: 30 fill;
+    border-image-outset: 0;
+    overflow: hidden;
+
+  }
+  .terminal {
+    text-transform: uppercase;
+    color: #75da72;
+    font-size: 32px;
+  }
+</style>
+
+<!-- the actual device -->
+<div id="monitor">
+  <!-- the rounded edge near the glass -->
+  <div id="bezel">
+    <!-- the overlay and horizontal pattern -->
+    <div id="crt" class="off" onclick="handleClick(event)"> 
+      <!-- slowly moving scanline -->
+      <div class="scanline"></div>
+      <!-- the input and output -->
+      <div class="terminal"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Code runs only in browser
+  document.addEventListener("DOMContentLoaded", () => {
+    const terminal = document.querySelector(".terminal");
+
+    function pause(s = 1) {
+      return new Promise(resolve => setTimeout(resolve, 1000 * Number(s)));
+    }
+
+    async function type(text, container) {
+      await pause(1);
+      const queue = text.split("");
+      while (queue.length) {
+        const char = queue.shift();
+        container.append(char);
+        await pause(0.05);
+      }
+      await pause(0.5);
+      container.classList.remove("active");
+    }
+
+    async function input() {
+      return new Promise(resolve => {
+        const onKeyDown = event => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            const result = event.target.textContent;
+            inputEl.removeEventListener("keydown", onKeyDown);
+            resolve(result);
+          }
+        };
+
+        const line = document.createElement("div");
+        line.classList.add("flex");
+        const carret = document.createElement("div");
+        carret.innerHTML = "> ";
+        carret.classList.add("mr-[1ch]");
+
+        const inputEl = document.createElement("div");
+        line.append(carret);
+        line.append(inputEl);
+        inputEl.id = "input";
+        inputEl.contentEditable = "true";
+        inputEl.addEventListener("keydown", onKeyDown);
+        terminal.appendChild(line);
+        inputEl.focus();
+      });
+    }
+
+    function clear() {
+      terminal.innerHTML = "> ";
+    }
+
+    async function boot() {
+      clear();
+      await type("HELLO WORLD", terminal);
+      await main();
+    }
+
+    async function main() {
+      const command = await input();
+      await type(`You typed: ${command}`, terminal);
+      main();
+    }
+
+    boot();
+  });
+</script>
+
